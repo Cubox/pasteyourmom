@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Cubox's paste.</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript">
+        document.onkeyup = function(e) {
+            e = e || window.event;
+            if ((e.ctrlKey && e.keyCode == 83)) {
+                document.paste.submit();
+            }
+        };
+    </script>
+</head>
+<body>
+    <form name="paste" action="/" method="post">
+        <textarea autofocus name="text"></textarea>
+        <input type="submit" value="Paste">
+    </form>
+</body>
+</html>
