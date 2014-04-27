@@ -1,0 +1,11 @@
+{
+  "DataFolder": "./",
+  "FormTitle": "content",
+  "IdLength": 5,
+  "IdSet": "abcdefjhijklmnopqrstuvwxyzABCDEFJHIJKLMNOPQRSTUVWXYZ1234567890",
+  "StaticFiles": [
+    "index.html",
+    "style.css"
+  ],
+  "RealIP": false
+}
