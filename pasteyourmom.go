@@ -1,6 +1,7 @@
 package main
 
 import (
+    "flag"
     "io"
     "log"
     "math/rand"
@@ -11,6 +12,7 @@ import (
 
     "github.com/zenazn/goji"
     "github.com/zenazn/goji/web"
+    "github.com/zenazn/goji/web/middleware"
 )
 
 const (
@@ -49,12 +51,16 @@ func root(c web.C, w http.ResponseWriter, r *http.Request) {
 
     file, err := os.Open(dataFolder + "index.html")
     if err != nil {
-        http.Error(w, http.StatusText(500), 500)
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
         stdoutLogger.Print(err)
         return
     }
 
-    io.Copy(w, file)
+    _, err = io.Copy(w, file)
+    if err != nil {
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+        return
+    }
 }
 
 func getPaste(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -64,19 +70,23 @@ func getPaste(c web.C, w http.ResponseWriter, r *http.Request) {
     }
     file, err := os.Open(dataFolder + c.URLParams["id"] + ".paste")
     if os.IsNotExist(err) {
-        http.Error(w, http.StatusText(404), 404)
+        http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
         return
     }
     if err != nil {
-        http.Error(w, http.StatusText(500), 500)
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
         stdoutLogger.Print(err)
         return
     }
-    io.Copy(w, file)
+
+    _, err = io.Copy(w, file)
+    if err != nil {
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+        return
+    }
 }
 
 func createPaste(w http.ResponseWriter, r *http.Request) {
-    r.ParseForm()
     id := genId()
     file, err := os.Create(dataFolder + id + ".paste")
     for os.IsExist(err) {
@@ -84,11 +94,23 @@ func createPaste(w http.ResponseWriter, r *http.Request) {
         file, err = os.Create(dataFolder + id + ".paste")
     }
     if err != nil {
-        http.Error(w, http.StatusText(500), 500)
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
         stdoutLogger.Print(err)
         return
     }
-    file.Write([]byte(r.Form["text"][0]))
+
+    text := r.FormValue("text")
+    if text == "" {
+        http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+        return
+    }
+
+    n, err := file.Write([]byte(text))
+    if err != nil || n != len(text) {
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+        return
+    }
+
     http.Redirect(w, r, id, http.StatusSeeOther)
 }
 
@@ -99,20 +121,29 @@ func getStatic(filename string, w http.ResponseWriter) {
     }
     file, err := os.Open(dataFolder + filename)
     if os.IsNotExist(err) {
-        http.Error(w, http.StatusText(404), 404)
+        http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
         return
     }
     if err != nil {
-        http.Error(w, http.StatusText(500), 500)
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
         stdoutLogger.Print(err)
         return
     }
-    io.Copy(w, file)
+    _, err = io.Copy(w, file)
+    if err != nil {
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+        return
+    }
 }
 
 func main() {
+    xRealIP := flag.Bool("realip", false, "use X-Real-IP for getting the IP adress of the client")
+    flag.Parse()
     stdoutLogger = log.New(os.Stderr, "", log.Flags())
     rand.Seed(time.Now().Unix())
+    if *xRealIP {
+        goji.Insert(middleware.RealIP, middleware.Logger)
+    }
     goji.Get("/", root)
     goji.Get("/:id", getPaste)
     goji.Post("/", createPaste)
