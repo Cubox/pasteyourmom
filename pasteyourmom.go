@@ -87,6 +87,10 @@ func root(c web.C, w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 
     file, err := os.Open(conf.DataFolder + "index.html")
+    if os.IsNotExist(err) {
+        http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+        return
+    }
     if err != nil {
         http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
         stdoutLogger.Print(err)
@@ -117,6 +121,8 @@ func getPaste(c web.C, w http.ResponseWriter, r *http.Request) {
         stdoutLogger.Print(err)
         return
     }
+
+    w.Header().Set("X-Content-Type-Options", "nosniff")
 
     _, err = io.Copy(w, file)
     if err != nil {
@@ -155,7 +161,7 @@ func createPaste(w http.ResponseWriter, r *http.Request) {
 
     http.Redirect(w, r, id, http.StatusSeeOther)
 
-    n, err = w.Write([]byte(r.Host + "/" + id + "\n"))
+    n, err = w.Write([]byte("http://" + r.Host + "/" + id + "\n"))
     if err != nil {
         http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
         stdoutLogger.Print(err)
