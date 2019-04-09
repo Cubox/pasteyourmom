@@ -2,7 +2,7 @@
 
 Simple paste service.
 
-Demo here: [http://paste.cubox.me]
+Demo here: [http://paste.cubox.dev]
 
 ## How to install?
 
@@ -21,7 +21,3 @@ pasteyourmom -bind :(your port here) -conf config.json
 
 Those steps are here for the example, modify following your needs.
 You can put a nginx or apache in front of this, use the XRealIP configuration variable.
-
-## License
-
-MIT.
